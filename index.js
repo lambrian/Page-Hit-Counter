@@ -4,6 +4,7 @@ var express = require('express'),
     path = require('path'),
     assert = require('assert'),
     mongoClient = mongodb.MongoClient,
+    ObjectID = mongodb.ObjectID,
     app = express();
 
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -23,8 +24,9 @@ app.get('/initialize-url', function (req, res) {
 app.post('/post-initialize-url', function (req, res) {
     mongoClient.connect(mongoURI, function (err, db) {
         initializeURL (db, req.body.url,
-            function () {
-                res.send("Success");
+            function (pageId) {
+                console.log ("Sending success response.");
+                res.send("Hit count associated with id: " + pageId);
             },
             function () {
                 res.send ("Record already existed");
@@ -34,37 +36,38 @@ app.post('/post-initialize-url', function (req, res) {
 
 app.get('/get-hit-count', function (req, res) {
     mongoClient.connect(mongoURI, function (err, db) {
-        accessHits(db, req.body.url,
+        accessHits(db, req.query.pageId,
             function (hitCount) {
-                res.send (req.body.url + " " + hitCount);
+                res.send (req.query.pageId + " " + hitCount);
             },
             function () {
-                res.send (req.body.url + " does not match any existing record.");
+                res.send (req.query.pageId + " does not match any existing record.");
             });
     });
 });
 
 app.get('/increment-count', function (req, res) {
     mongoClient.connect(mongoURI, function (err, db) {
-        accessHits(db, req.query.url,
+        accessHits(db, req.query.pageId,
             function (hitCount) {
-                res.send (req.query.url + ": " + hitCount);
+                res.send (req.query.pageId + ": " + hitCount);
             },
             function () {
-                res.send (req.query.url + "does not match any existing record.");
+                res.send (req.query.pageId + "does not match any existing record.");
             }, true);
     });
 });
 
-var accessHits = function (db, url, success, fail, shouldIncrement) {
+var accessHits = function (db, pageId, success, fail, shouldIncrement) {
    var pageCollection = db.collection('page');
-   console.log ('Accessing hit count of url: ', url);
+   console.log ('Accessing hit count of record id: ', pageId);
    pageCollection.findAndModify(
-           {url: url},
+           {_id: new ObjectID(pageId)},
            null, 
            {$inc: {hits: (shouldIncrement) ? 1 : 0 }},
            {new:true},
            function (err, doc) {
+               console.log (doc);
                if (!err) {
                    obj = doc.value;
                    success(obj.hits);
@@ -90,10 +93,9 @@ var initializeURL = function (db, url, success, fail) {
                     url: url,
                     hits:0
                 }).then(function(r) {
-                    console.log("Inserted record with url: ", url);
-                    assert.equals(r.insertedCount, 1);
+                    console.log("Inserted record with url: ", url, 'with record id: ', r.insertedId);
+                    success(r.insertedId);
                 });
-                success();
             } else {
                 console.log ('Present record found. Not going to insert.');
                 fail();
