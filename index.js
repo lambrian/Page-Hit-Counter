@@ -34,11 +34,21 @@ app.post('/post-initialize-url', function (req, res) {
     });
 });
 
+var getSuffix = function (hitCount) {
+    hitCount = hitCount % 10;
+    switch (hitCount) {
+        case 1: return "st"; break;
+        case 2: return "nd"; break;
+        case 3: return "rd"; break;
+        default: return "th"; break;
+    }
+}
+
 app.get('/get-hit-count', function (req, res) {
     mongoClient.connect(mongoURI, function (err, db) {
         accessHits(db, req.query.pageId,
             function (hitCount) {
-                res.send (req.query.pageId + " " + hitCount);
+                res.json ({hits: hitCount, suffix: getSuffix(hitCount)});
             },
             function () {
                 res.send (req.query.pageId + " does not match any existing record.");
@@ -50,7 +60,7 @@ app.get('/increment-count', function (req, res) {
     mongoClient.connect(mongoURI, function (err, db) {
         accessHits(db, req.query.pageId,
             function (hitCount) {
-                res.send (req.query.pageId + ": " + hitCount);
+                res.json ({hits: hitCount, suffix: getSuffix(hitCount)});
             },
             function () {
                 res.send (req.query.pageId + "does not match any existing record.");
