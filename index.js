@@ -51,7 +51,6 @@ app.post('/post-initialize-url', function (req, res) {
 });
 
 var getSuffix = function (hitCount) {
-    hitCount = hitCount % 10;
     switch (hitCount) {
         case 1: return "st"; break;
         case 2: return "nd"; break;
