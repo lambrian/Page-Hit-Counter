@@ -9,6 +9,22 @@ var express = require('express'),
 
 app.use(bodyParser.urlencoded({ extended: true }));
 
+var allowCrossDomain = function(req, res, next) {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Content-Length, X-Requested-With');
+
+    // intercept OPTIONS method
+    if ('OPTIONS' == req.method) {
+      res.send(200);
+    }
+    else {
+      next();
+    }
+};
+
+app.use(allowCrossDomain);
+
 //mongodb://<dbuser>:<dbpassword>@ds055802.mongolab.com:55802/hit_counter
 var mongoURI = 'mongodb://brianlam:hit_counter@ds055802.mongolab.com:55802/hit_counter';
 
@@ -86,7 +102,7 @@ var accessHits = function (db, pageId, success, fail, shouldIncrement) {
 };
 
 // TODO add heroku processing port here
-var server = app.listen(3000, function() {
+var server = app.listen(process.env.PORT || 3000, function() {
     var host = server.address().address;
     var port = server.address().port;
     console.log('Example app listening at http://%s:%s', host, port);
